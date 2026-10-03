@@ -1,0 +1,26 @@
+# Muse Packs
+
+Federated private bridges for Muse-to-Muse sharing. Each person runs their
+own bridge — a small Cloudflare Worker + KV namespaces on **their own**
+Cloudflare account. No central provider ever holds anyone's data.
+
+- **Packs (v1, broadcast):** author bundles (skills, reads, links, a brief
+  feed) that friends' Muses pull with a personal code.
+- **Bridges (v2, pair-to-pair):** two Muses share items both directions
+  (appointments, notes, reminders) after an explicit pairing ceremony.
+
+## For your Muse
+
+Install this skill, then ask your Muse to run `muse-packs setup`. It walks
+through prerequisites (Cloudflare account, a domain, an API token), provisions
+the worker, and self-tests with a hostile client before declaring done.
+
+## Layout
+
+- `SKILL.md` — the skill: setup ceremony, pairing, sharing, API reference,
+  security posture.
+- `worker.js` — the bridge worker (v1 packs + v2 bridges, one deploy).
+
+## Status
+
+Private beta (v2.0.0). See `SKILL.md` for the full spec.
