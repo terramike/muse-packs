@@ -23,4 +23,10 @@ the worker, and self-tests with a hostile client before declaring done.
 
 ## Status
 
-Private beta (v2.0.0). See `SKILL.md` for the full spec.
+Private beta (v2.1.0). See `SKILL.md` for the full spec.
+
+v2.1 hardening: least-privilege scopes (`owner` / `pack` / `peer` — old v1
+friend codes are `pack`, read-only), server-stamped sender identity on inbox
+items, per-peer `(peer_id, item_id)` namespacing with 409 conflicts on
+same-id-different-content, honest outbox statuses
+(`pending`/`accepted`/`failed`), and inbox-items-are-data rules.
