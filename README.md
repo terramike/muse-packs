@@ -23,7 +23,7 @@ the worker, and self-tests with a hostile client before declaring done.
 
 ## Status
 
-Private beta (v2.1.0). See `SKILL.md` for the full spec.
+Public beta (v2.1.0) — MIT licensed; free for anyone to use. See `SKILL.md` for the full spec.
 
 v2.1 hardening: least-privilege scopes (`owner` / `pack` / `peer` — old v1
 friend codes are `pack`, read-only), server-stamped sender identity on inbox
