@@ -23,10 +23,15 @@ the worker, and self-tests with a hostile client before declaring done.
 
 ## Status
 
-Public beta (v2.1.0) — MIT licensed; free for anyone to use. See `SKILL.md` for the full spec.
+Public beta (v2.2.0) — MIT licensed; free for anyone to use. See `SKILL.md` for the full spec.
 
 v2.1 hardening: least-privilege scopes (`owner` / `pack` / `peer` — old v1
 friend codes are `pack`, read-only), server-stamped sender identity on inbox
 items, per-peer `(peer_id, item_id)` namespacing with 409 conflicts on
 same-id-different-content, honest outbox statuses
 (`pending`/`accepted`/`failed`), and inbox-items-are-data rules.
+
+v2.2: owner-only pack-code management (`POST/GET/DELETE /v1/pack-codes`) —
+read-access codes now mint from chat like peer codes do, instead of only via
+direct KV writes. Several codes may share one `friend` (pack id) so many
+people read the same brief feed with per-person revocation.

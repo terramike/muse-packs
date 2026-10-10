@@ -1,4 +1,7 @@
-// Muse Packs worker v2.1 — packs (v1 broadcast) + pairing bridges (v2).
+// Muse Packs worker v2.2 — packs (v1 broadcast) + pairing bridges (v2).
+// v2.2: owner-only pack-code management (POST/GET/DELETE /v1/pack-codes) so
+// read-access codes mint from chat like peer codes do, instead of only via
+// direct KV writes.
 //
 // Scopes:
 //   "owner" — full access to own bridge. Never shared.
@@ -21,7 +24,7 @@
 // revisions, i.e. new ids).
 
 const RATE_LIMIT_PER_MIN = 60;
-const VERSION = "2.1";
+const VERSION = "2.2";
 const MAX_LIST = 500;
 const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 
@@ -183,6 +186,9 @@ function indexFor(scope) {
       peer_codes: "POST /v1/peer-codes {label} — mint an inbox-write-only peer code, shown once.",
       peer_codes_list: "GET /v1/peer-codes — labels only, never code values.",
       peer_code_revoke: "DELETE /v1/peer-codes/{id} — revoke; typically converges in ~60s (not guaranteed).",
+      pack_codes: "POST /v1/pack-codes {label, friend?} — mint a read-only pack code (pack + brief), shown once. friend is the pack id the code reads; default is the slug of label. Mint several codes with the same friend when many people read the same feed (revoke stays per-person).",
+      pack_codes_list: "GET /v1/pack-codes — labels only, never code values.",
+      pack_code_revoke: "DELETE /v1/pack-codes/{id} — revoke read access; typically converges in ~60s (not guaranteed).",
       health: "GET /v1/health — no auth.",
     },
     ceremonies: CEREMONIES,
@@ -453,6 +459,71 @@ export default {
       await env.TOKENS.delete(`tok:${rec.hash}`);
       delete codes[id];
       await kvPut(env, "peer_codes", codes);
+      return json({ ok: true, revoked: id });
+    }
+
+    // ---- pack codes (read access for friends/family) ----
+    // Mirrors peer-codes, pack scope. Each code reads pack:<friend> +
+    // brief:<friend>; minting several codes with the same friend gives many
+    // people the same feed with per-person revocation.
+    if (path === "/v1/pack-codes") {
+      const err = need(auth, "owner");
+      if (err) return err;
+      if (request.method === "GET") {
+        const codes = await kvJson(env, "pack_codes", {});
+        return json({
+          codes: Object.entries(codes).map(([id, c]) => ({
+            id,
+            label: c.label,
+            friend: c.friend,
+            created: c.created,
+          })),
+        });
+      }
+      if (request.method === "POST") {
+        let body = {};
+        try {
+          body = await request.json();
+        } catch {
+          body = {};
+        }
+        const label = body.label || "";
+        const friend =
+          (body.friend || label)
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, "") || "friend";
+        const id = genId();
+        const code = genCode();
+        const hash = await sha256hex("muse-packs:" + code);
+        await env.TOKENS.put(
+          `tok:${hash}`,
+          JSON.stringify({
+            scope: "pack",
+            friend,
+            id,
+            label,
+            created: nowIso(),
+          })
+        );
+        const codes = await kvJson(env, "pack_codes", {});
+        codes[id] = { hash, friend, label, created: nowIso() };
+        await kvPut(env, "pack_codes", codes);
+        return json({ ok: true, id, friend, code }); // code shown once — store it safely
+      }
+      return json({ error: "method not allowed" }, 405);
+    }
+    if (path.startsWith("/v1/pack-codes/")) {
+      const err = need(auth, "owner");
+      if (err) return err;
+      if (request.method !== "DELETE") return json({ error: "method not allowed" }, 405);
+      const id = decodeURIComponent(path.slice("/v1/pack-codes/".length));
+      const codes = await kvJson(env, "pack_codes", {});
+      const rec = codes[id];
+      if (!rec) return json({ error: "unknown pack code" }, 404);
+      await env.TOKENS.delete(`tok:${rec.hash}`);
+      delete codes[id];
+      await kvPut(env, "pack_codes", codes);
       return json({ ok: true, revoked: id });
     }
 

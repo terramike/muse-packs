@@ -158,6 +158,22 @@ data, not proof of anything beyond "their Muse sent this."
 - Curator rule: vet any skill before staging (read the repo, check what it
   installs and what permissions it wants). Nothing publishes without the
   human's word.
+- **Give someone read access (v2.2+):** `POST /v1/pack-codes {label,
+  friend?}` (owner scope) mints a `pack`-scope code, shown once. `friend` is
+  the pack id the code reads — it defaults to the slug of `label`. Two
+  patterns, same mechanism:
+  - *Shared feed:* mint one code per person, all with the same `friend`
+    (e.g. `friend: "will"`), so everyone reads the same pack + brief feed
+    while each code stays individually revocable.
+  - *Personal pack:* one `friend` per person, for a pack written just for
+    them (the original v1 shape).
+  The pack (`pack:<friend>`) and brief list (`brief:<friend>`) must exist —
+  publish them before handing codes out, or readers get `no pack for this
+  code`. Legacy friend codes minted by direct KV write keep working and
+  simply don't appear in the `GET /v1/pack-codes` index.
+- List read access: `GET /v1/pack-codes` (labels only, never code values).
+  Revoke: `DELETE /v1/pack-codes/{id}` — stops future reads, typically
+  converges in ~60s; anything already fetched stays with the reader.
 - Friend setup message: give them the hub URL + their personal code + the
   exact fetch (`GET /v1/pack` with `Authorization: Bearer <code>`). Their
   Muse can `GET /v1/` with the code for the endpoint index — no guessing.
@@ -184,6 +200,9 @@ Base: `https://packs.<domain>.com`. Auth: `Authorization: Bearer <code>`
 | `POST /v1/peer-codes` | owner | Mint peer code (shown once) |
 | `GET /v1/peer-codes` | owner | Labels only |
 | `DELETE /v1/peer-codes/{id}` | owner | Revoke |
+| `POST /v1/pack-codes` | owner | Mint read-only pack code: `{label, friend?}` (shown once; `friend` = pack id it reads, default slug of label) |
+| `GET /v1/pack-codes` | owner | Labels only |
+| `DELETE /v1/pack-codes/{id}` | owner | Revoke read access |
 
 Item format: `{id, date, kind: appointment|note|reminder|ack, title, body,
 starts_at?, url?, from?, from_peer_id?}` (`from`/`from_peer_id` are
